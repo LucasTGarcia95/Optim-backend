@@ -2,8 +2,8 @@ import express from "express";
 const app = express();
 export default app;
 
-import usersRouter from "#api/users";
-import workspacesRouter from "#api/workspaces";
+import usersRouter from "#api/auth.routes";
+import workspacesRouter from "#api/workspaces.routes";
 import getUserFromToken from "#middleware/getUserFromToken";
 import handlePostgresErrors from "#middleware/handlePostgresErrors";
 import cors from "cors";

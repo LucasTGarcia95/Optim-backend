@@ -1,15 +1,17 @@
 import { Router } from "express";
-import { pool } from "#db/pool";
-import { requireAuth } from "#middleware/auth";
+// import { pool } from "#db/pool";
+// import { requireAuth } from "#middleware/auth";
+import db from "#db/client";
+import requireUser from "#middleware/requireUser";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireUser);
 
 // Returns the current user's membership row for a workspace, or null if they're not a member.
 async function getMembership(workspaceId, userId) {
   const {
     rows: [membership],
-  } = await pool.query(
+  } = await db.query(
     "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
     [workspaceId, userId],
   );
@@ -21,7 +23,7 @@ router.post("/", async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: "name is required" });
 
-  const client = await pool.connect();
+  const client = await db.connect();
   try {
     await client.query("BEGIN");
     const {
@@ -46,7 +48,7 @@ router.post("/", async (req, res) => {
 
 // GET /api/workspaces — list workspaces for current user
 router.get("/", async (req, res) => {
-  const { rows: workspaces } = await pool.query(
+  const { rows: workspaces } = await db.query(
     `SELECT w.id, w.name, w.owner_id, w.created_at, wm.role AS my_role
      FROM workspaces w
      JOIN workspace_members wm ON wm.workspace_id = w.id
@@ -67,7 +69,7 @@ router.get("/:id", async (req, res) => {
 
   const {
     rows: [workspace],
-  } = await pool.query(
+  } = await db.query(
     "SELECT id, name, owner_id, created_at FROM workspaces WHERE id = $1",
     [req.params.id],
   );
@@ -93,7 +95,7 @@ router.patch("/:id", async (req, res) => {
 
   const {
     rows: [workspace],
-  } = await pool.query(
+  } = await db.query(
     "UPDATE workspaces SET name = $1 WHERE id = $2 RETURNING id, name, owner_id, created_at",
     [name, req.params.id],
   );
@@ -112,7 +114,7 @@ router.delete("/:id", async (req, res) => {
       .status(403)
       .json({ error: "Only admins can delete this workspace" });
 
-  await pool.query("DELETE FROM workspaces WHERE id = $1", [req.params.id]);
+  await db.query("DELETE FROM workspaces WHERE id = $1", [req.params.id]);
   res.status(204).send();
 });
 
@@ -131,7 +133,7 @@ router.post("/:id/invite", async (req, res) => {
 
   const {
     rows: [user],
-  } = await pool.query("SELECT id, name, email FROM users WHERE email = $1", [
+  } = await db.query("SELECT id, name, email FROM users WHERE email = $1", [
     email.toLowerCase(),
   ]);
   if (!user) {
@@ -142,7 +144,7 @@ router.post("/:id/invite", async (req, res) => {
   }
 
   try {
-    await pool.query(
+    await db.query(
       "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, 'member')",
       [req.params.id, user.id],
     );
@@ -155,16 +157,14 @@ router.post("/:id/invite", async (req, res) => {
     throw err;
   }
 
-  res
-    .status(201)
-    .json({
-      member: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: "member",
-      },
-    });
+  res.status(201).json({
+    member: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: "member",
+    },
+  });
 });
 
 // GET /api/workspaces/:id/members
@@ -175,7 +175,7 @@ router.get("/:id/members", async (req, res) => {
       .status(403)
       .json({ error: "You don't have access to this workspace" });
 
-  const { rows: members } = await pool.query(
+  const { rows: members } = await db.query(
     `SELECT u.id, u.name, u.email, u.avatar_url, wm.role, wm.joined_at
      FROM workspace_members wm
      JOIN users u ON u.id = wm.user_id
@@ -198,14 +198,14 @@ router.delete("/:id/members/:userId", async (req, res) => {
 
   const {
     rows: [workspace],
-  } = await pool.query("SELECT owner_id FROM workspaces WHERE id = $1", [
+  } = await db.query("SELECT owner_id FROM workspaces WHERE id = $1", [
     req.params.id,
   ]);
   if (workspace.owner_id === req.params.userId) {
     return res.status(400).json({ error: "Can't remove the workspace owner" });
   }
 
-  await pool.query(
+  await db.query(
     "DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
     [req.params.id, req.params.userId],
   );

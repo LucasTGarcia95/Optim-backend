@@ -1,8 +1,13 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { pool } from "#db/pool";
-import { requireAuth } from "#middleware/auth";
+// import { pool } from "#db/pool";
+// import { requireAuth } from "#middleware/auth";
+import requireUser from "#middleware/requireUser";
+import db from "#db/client";
+import { OAuth2Client } from "google-auth-library";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const router = Router();
 
@@ -20,7 +25,7 @@ function publicUser(row) {
 }
 
 // POST /api/auth/signup
-router.post("/signup", async (req, res) => {
+router.post("/register", async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password) {
     return res
@@ -38,7 +43,7 @@ router.post("/signup", async (req, res) => {
   try {
     const {
       rows: [user],
-    } = await pool.query(
+    } = await db.query(
       `INSERT INTO users (name, email, password_hash)
        VALUES ($1, $2, $3)
        RETURNING id, name, email, avatar_url`,
@@ -67,7 +72,7 @@ router.post("/login", async (req, res) => {
 
   const {
     rows: [user],
-  } = await pool.query(
+  } = await db.query(
     "SELECT id, name, email, password_hash, avatar_url FROM users WHERE email = $1",
     [email.toLowerCase()],
   );
@@ -87,10 +92,10 @@ router.post("/login", async (req, res) => {
 });
 
 // GET /api/auth/me
-router.get("/me", requireAuth, async (req, res) => {
+router.get("/me", requireUser, async (req, res) => {
   const {
     rows: [user],
-  } = await pool.query(
+  } = await db.query(
     "SELECT id, name, email, avatar_url FROM users WHERE id = $1",
     [req.user.sub],
   );
@@ -100,6 +105,48 @@ router.get("/me", requireAuth, async (req, res) => {
   }
 
   res.json({ user: publicUser(user) });
+});
+
+router.post("/google", async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) {
+    return res.status(400).json({ error: "credential is required" });
+  }
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch {
+    return res.status(401).json({ error: "Invalid Google credential" });
+  }
+
+  const { email, name, picture } = payload;
+  const {
+    rows: [existing],
+  } = await db.query(
+    "SELECT id, name, email, avatar_url FROM users WHERE email = $1",
+    [email.toLowerCase()],
+  );
+
+  let user = existing;
+  if (!user) {
+    const {
+      rows: [created],
+    } = await db.query(
+      `INSERT INTO users (name, email, avatar_url, password_hash)
+       VALUES ($1, $2, $3, NULL)
+       RETURNING id, name, email, avatar_url`,
+      [name, email.toLowerCase(), picture],
+    );
+    user = created;
+  }
+
+  const token = signToken(user.id);
+  res.json({ token, user: publicUser(user) });
 });
 
 export default router;
