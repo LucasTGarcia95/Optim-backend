@@ -42,7 +42,7 @@ router.post("/", async (req, res) => {
   const projectId = await getTaskProjectId(taskId);
   if (!projectId) return res.status(404).json({ error: "Task not found" });
 
-  const membership = await getProjectMembership(projectId, req.user.sub);
+  const membership = await getProjectMembership(projectId, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -58,12 +58,12 @@ router.post("/", async (req, res) => {
       `INSERT INTO comments (task_id, user_id, content)
        VALUES ($1, $2, $3)
        RETURNING id, task_id, user_id, content, created_at, updated_at`,
-      [taskId, req.user.sub, content],
+      [taskId, req.user.id, content],
     );
 
     await client.query(
       "INSERT INTO activity_log (task_id, user_id, action, details) VALUES ($1, $2, 'commented', $3)",
-      [taskId, req.user.sub, JSON.stringify({ commentId: comment.id })],
+      [taskId, req.user.id, JSON.stringify({ commentId: comment.id })],
     );
 
     await client.query("COMMIT");
@@ -85,7 +85,7 @@ router.get("/", async (req, res) => {
   const projectId = await getTaskProjectId(taskId);
   if (!projectId) return res.status(404).json({ error: "Task not found" });
 
-  const membership = await getProjectMembership(projectId, req.user.sub);
+  const membership = await getProjectMembership(projectId, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -107,7 +107,7 @@ router.patch("/:id", async (req, res) => {
   const comment = await getComment(req.params.id);
   if (!comment) return res.status(404).json({ error: "Comment not found" });
 
-  if (comment.user_id !== req.user.sub) {
+  if (comment.user_id !== req.user.id) {
     return res
       .status(403)
       .json({ error: "You can only edit your own comments" });
@@ -130,7 +130,7 @@ router.delete("/:id", async (req, res) => {
   const comment = await getComment(req.params.id);
   if (!comment) return res.status(404).json({ error: "Comment not found" });
 
-  if (comment.user_id !== req.user.sub) {
+  if (comment.user_id !== req.user.id) {
     return res
       .status(403)
       .json({ error: "You can only delete your own comments" });

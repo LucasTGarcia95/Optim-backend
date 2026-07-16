@@ -47,7 +47,7 @@ router.post("/", async (req, res) => {
       .json({ error: "workspaceId, name, and key are required" });
   }
 
-  const membership = await getWorkspaceMembership(workspaceId, req.user.sub);
+  const membership = await getWorkspaceMembership(workspaceId, req.user.id);
   if (!membership) {
     return res
       .status(403)
@@ -69,7 +69,7 @@ router.post("/", async (req, res) => {
 
     await client.query(
       "INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, 'lead')",
-      [project.id, req.user.sub],
+      [project.id, req.user.id],
     );
 
     const {
@@ -91,11 +91,9 @@ router.post("/", async (req, res) => {
   } catch (err) {
     await client.query("ROLLBACK");
     if (err.code === "23505") {
-      return res
-        .status(409)
-        .json({
-          error: "A project with that key already exists in this workspace",
-        });
+      return res.status(409).json({
+        error: "A project with that key already exists in this workspace",
+      });
     }
     throw err;
   } finally {
@@ -111,7 +109,7 @@ router.get("/", async (req, res) => {
       .status(400)
       .json({ error: "workspace_id query param is required" });
 
-  const membership = await getWorkspaceMembership(workspaceId, req.user.sub);
+  const membership = await getWorkspaceMembership(workspaceId, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -135,7 +133,7 @@ router.get("/:id", async (req, res) => {
   const project = await getProject(req.params.id);
   if (!project) return res.status(404).json({ error: "Project not found" });
 
-  const membership = await getProjectMembership(project.id, req.user.sub);
+  const membership = await getProjectMembership(project.id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -149,7 +147,7 @@ router.patch("/:id", async (req, res) => {
   const project = await getProject(req.params.id);
   if (!project) return res.status(404).json({ error: "Project not found" });
 
-  const membership = await getProjectMembership(project.id, req.user.sub);
+  const membership = await getProjectMembership(project.id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -176,7 +174,7 @@ router.delete("/:id", async (req, res) => {
   const project = await getProject(req.params.id);
   if (!project) return res.status(404).json({ error: "Project not found" });
 
-  const membership = await getProjectMembership(project.id, req.user.sub);
+  const membership = await getProjectMembership(project.id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -195,7 +193,7 @@ router.get("/:id/board", async (req, res) => {
   const project = await getProject(req.params.id);
   if (!project) return res.status(404).json({ error: "Project not found" });
 
-  const membership = await getProjectMembership(project.id, req.user.sub);
+  const membership = await getProjectMembership(project.id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -238,7 +236,7 @@ router.post("/:id/members", async (req, res) => {
   const project = await getProject(req.params.id);
   if (!project) return res.status(404).json({ error: "Project not found" });
 
-  const membership = await getProjectMembership(project.id, req.user.sub);
+  const membership = await getProjectMembership(project.id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -261,11 +259,9 @@ router.post("/:id/members", async (req, res) => {
     [email.toLowerCase(), project.workspace_id],
   );
   if (!user) {
-    return res
-      .status(404)
-      .json({
-        error: "That person isn't a member of this project's workspace yet",
-      });
+    return res.status(404).json({
+      error: "That person isn't a member of this project's workspace yet",
+    });
   }
 
   try {
@@ -282,16 +278,14 @@ router.post("/:id/members", async (req, res) => {
     throw err;
   }
 
-  res
-    .status(201)
-    .json({
-      member: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: "member",
-      },
-    });
+  res.status(201).json({
+    member: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: "member",
+    },
+  });
 });
 
 // DELETE /api/projects/:id/members/:userId — project leads only
@@ -299,7 +293,7 @@ router.delete("/:id/members/:userId", async (req, res) => {
   const project = await getProject(req.params.id);
   if (!project) return res.status(404).json({ error: "Project not found" });
 
-  const membership = await getProjectMembership(project.id, req.user.sub);
+  const membership = await getProjectMembership(project.id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -317,11 +311,9 @@ router.delete("/:id/members/:userId", async (req, res) => {
   );
   const target = await getProjectMembership(project.id, req.params.userId);
   if (target?.role === "lead" && leadCount.count <= 1) {
-    return res
-      .status(400)
-      .json({
-        error: "Can't remove the last lead — promote someone else first",
-      });
+    return res.status(400).json({
+      error: "Can't remove the last lead — promote someone else first",
+    });
   }
 
   await pool.query(

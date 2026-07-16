@@ -30,11 +30,11 @@ router.post("/", async (req, res) => {
       rows: [workspace],
     } = await client.query(
       "INSERT INTO workspaces (name, owner_id) VALUES ($1, $2) RETURNING id, name, owner_id, created_at",
-      [name, req.user.sub],
+      [name, req.user.id],
     );
     await client.query(
       "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, 'admin')",
-      [workspace.id, req.user.sub],
+      [workspace.id, req.user.id],
     );
     await client.query("COMMIT");
     res.status(201).json({ workspace });
@@ -54,14 +54,14 @@ router.get("/", async (req, res) => {
      JOIN workspace_members wm ON wm.workspace_id = w.id
      WHERE wm.user_id = $1
      ORDER BY w.created_at DESC`,
-    [req.user.sub],
+    [req.user.id],
   );
   res.json({ workspaces });
 });
 
 // GET /api/workspaces/:id
 router.get("/:id", async (req, res) => {
-  const membership = await getMembership(req.params.id, req.user.sub);
+  const membership = await getMembership(req.params.id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -80,7 +80,7 @@ router.get("/:id", async (req, res) => {
 
 // PATCH /api/workspaces/:id
 router.patch("/:id", async (req, res) => {
-  const membership = await getMembership(req.params.id, req.user.sub);
+  const membership = await getMembership(req.params.id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -104,7 +104,7 @@ router.patch("/:id", async (req, res) => {
 
 // DELETE /api/workspaces/:id
 router.delete("/:id", async (req, res) => {
-  const membership = await getMembership(req.params.id, req.user.sub);
+  const membership = await getMembership(req.params.id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -120,7 +120,7 @@ router.delete("/:id", async (req, res) => {
 
 // POST /api/workspaces/:id/invite
 router.post("/:id/invite", async (req, res) => {
-  const membership = await getMembership(req.params.id, req.user.sub);
+  const membership = await getMembership(req.params.id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -169,7 +169,7 @@ router.post("/:id/invite", async (req, res) => {
 
 // GET /api/workspaces/:id/members
 router.get("/:id/members", async (req, res) => {
-  const membership = await getMembership(req.params.id, req.user.sub);
+  const membership = await getMembership(req.params.id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -188,7 +188,7 @@ router.get("/:id/members", async (req, res) => {
 
 // DELETE /api/workspaces/:id/members/:userId
 router.delete("/:id/members/:userId", async (req, res) => {
-  const membership = await getMembership(req.params.id, req.user.sub);
+  const membership = await getMembership(req.params.id, req.user.id);
   if (!membership)
     return res
       .status(403)

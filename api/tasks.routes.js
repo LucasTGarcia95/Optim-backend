@@ -81,7 +81,7 @@ router.post("/", async (req, res) => {
       .json({ error: "projectId, columnId, and title are required" });
   }
 
-  const membership = await getProjectMembership(projectId, req.user.sub);
+  const membership = await getProjectMembership(projectId, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -130,13 +130,13 @@ router.post("/", async (req, res) => {
         priority || "medium",
         dueDate || null,
         assigneeId || null,
-        req.user.sub,
+        req.user.id,
       ],
     );
 
     await client.query(
       "INSERT INTO activity_log (task_id, user_id, action, details) VALUES ($1, $2, 'created', $3)",
-      [task.id, req.user.sub, JSON.stringify({ title })],
+      [task.id, req.user.id, JSON.stringify({ title })],
     );
 
     await client.query("COMMIT");
@@ -163,7 +163,7 @@ router.get("/", async (req, res) => {
       .status(400)
       .json({ error: "project_id query param is required" });
 
-  const membership = await getProjectMembership(projectId, req.user.sub);
+  const membership = await getProjectMembership(projectId, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -208,7 +208,7 @@ router.get("/:id", async (req, res) => {
   const task = await getTask(req.params.id);
   if (!task) return res.status(404).json({ error: "Task not found" });
 
-  const membership = await getProjectMembership(task.project_id, req.user.sub);
+  const membership = await getProjectMembership(task.project_id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -241,7 +241,7 @@ router.patch("/:id", async (req, res) => {
   const task = await getTask(req.params.id);
   if (!task) return res.status(404).json({ error: "Task not found" });
 
-  const membership = await getProjectMembership(task.project_id, req.user.sub);
+  const membership = await getProjectMembership(task.project_id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -322,7 +322,7 @@ router.patch("/:id", async (req, res) => {
         "INSERT INTO activity_log (task_id, user_id, action, details) VALUES ($1, $2, 'status_changed', $3)",
         [
           task.id,
-          req.user.sub,
+          req.user.id,
           JSON.stringify({ from: before.column_id, to: columnId }),
         ],
       );
@@ -335,7 +335,7 @@ router.patch("/:id", async (req, res) => {
         "INSERT INTO activity_log (task_id, user_id, action, details) VALUES ($1, $2, 'assigned', $3)",
         [
           task.id,
-          req.user.sub,
+          req.user.id,
           JSON.stringify({ from: before.assignee_id, to: assigneeId || null }),
         ],
       );
@@ -356,7 +356,7 @@ router.delete("/:id", async (req, res) => {
   const task = await getTask(req.params.id);
   if (!task) return res.status(404).json({ error: "Task not found" });
 
-  const membership = await getProjectMembership(task.project_id, req.user.sub);
+  const membership = await getProjectMembership(task.project_id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -371,7 +371,7 @@ router.get("/:id/activity", async (req, res) => {
   const task = await getTask(req.params.id);
   if (!task) return res.status(404).json({ error: "Task not found" });
 
-  const membership = await getProjectMembership(task.project_id, req.user.sub);
+  const membership = await getProjectMembership(task.project_id, req.user.id);
   if (!membership)
     return res
       .status(403)

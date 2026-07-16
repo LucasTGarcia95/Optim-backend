@@ -41,7 +41,7 @@ router.post("/", async (req, res) => {
       .json({ error: "projectId, name, and color are required" });
   }
 
-  const membership = await getProjectMembership(projectId, req.user.sub);
+  const membership = await getProjectMembership(projectId, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -57,11 +57,9 @@ router.post("/", async (req, res) => {
     res.status(201).json({ label });
   } catch (err) {
     if (err.code === "23505") {
-      return res
-        .status(409)
-        .json({
-          error: "A label with that name already exists on this project",
-        });
+      return res.status(409).json({
+        error: "A label with that name already exists on this project",
+      });
     }
     throw err;
   }
@@ -75,7 +73,7 @@ router.get("/", async (req, res) => {
       .status(400)
       .json({ error: "project_id query param is required" });
 
-  const membership = await getProjectMembership(projectId, req.user.sub);
+  const membership = await getProjectMembership(projectId, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -93,7 +91,7 @@ router.patch("/:id", async (req, res) => {
   const label = await getLabel(req.params.id);
   if (!label) return res.status(404).json({ error: "Label not found" });
 
-  const membership = await getProjectMembership(label.project_id, req.user.sub);
+  const membership = await getProjectMembership(label.project_id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -112,11 +110,9 @@ router.patch("/:id", async (req, res) => {
     res.json({ label: updated });
   } catch (err) {
     if (err.code === "23505") {
-      return res
-        .status(409)
-        .json({
-          error: "A label with that name already exists on this project",
-        });
+      return res.status(409).json({
+        error: "A label with that name already exists on this project",
+      });
     }
     throw err;
   }
@@ -127,7 +123,7 @@ router.delete("/:id", async (req, res) => {
   const label = await getLabel(req.params.id);
   if (!label) return res.status(404).json({ error: "Label not found" });
 
-  const membership = await getProjectMembership(label.project_id, req.user.sub);
+  const membership = await getProjectMembership(label.project_id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -142,7 +138,7 @@ router.post("/:id/tasks/:taskId", async (req, res) => {
   const label = await getLabel(req.params.id);
   if (!label) return res.status(404).json({ error: "Label not found" });
 
-  const membership = await getProjectMembership(label.project_id, req.user.sub);
+  const membership = await getProjectMembership(label.project_id, req.user.id);
   if (!membership)
     return res
       .status(403)
@@ -178,7 +174,7 @@ router.delete("/:id/tasks/:taskId", async (req, res) => {
   const label = await getLabel(req.params.id);
   if (!label) return res.status(404).json({ error: "Label not found" });
 
-  const membership = await getProjectMembership(label.project_id, req.user.sub);
+  const membership = await getProjectMembership(label.project_id, req.user.id);
   if (!membership)
     return res
       .status(403)
