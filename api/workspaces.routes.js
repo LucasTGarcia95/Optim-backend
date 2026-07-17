@@ -3,6 +3,7 @@ import { Router } from "express";
 // import { requireAuth } from "#middleware/auth";
 import db from "#db/client";
 import requireUser from "#middleware/requireUser";
+import { createProject, getProjectsByWorkspace } from "#db/queries/projects";
 
 const router = Router();
 router.use(requireUser);
@@ -19,31 +20,26 @@ async function getMembership(workspaceId, userId) {
 }
 
 // POST /api/workspaces — create workspace, creator becomes admin
+// FIXED: was calling db.connect() a second time on the already-connected
+// singleton Client, which throws immediately. db/client.js is a single
+// Client (not a Pool), so there's no safe transaction wrapper available —
+// these run as two sequential statements instead, same pattern used
+// everywhere else in this codebase.
 router.post("/", async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: "name is required" });
 
-  const client = await db.connect();
-  try {
-    await client.query("BEGIN");
-    const {
-      rows: [workspace],
-    } = await client.query(
-      "INSERT INTO workspaces (name, owner_id) VALUES ($1, $2) RETURNING id, name, owner_id, created_at",
-      [name, req.user.id],
-    );
-    await client.query(
-      "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, 'admin')",
-      [workspace.id, req.user.id],
-    );
-    await client.query("COMMIT");
-    res.status(201).json({ workspace });
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+  const {
+    rows: [workspace],
+  } = await db.query(
+    "INSERT INTO workspaces (name, owner_id) VALUES ($1, $2) RETURNING id, name, owner_id, created_at",
+    [name, req.user.id],
+  );
+  await db.query(
+    "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, 'admin')",
+    [workspace.id, req.user.id],
+  );
+  res.status(201).json({ workspace });
 });
 
 // GET /api/workspaces — list workspaces for current user
@@ -210,6 +206,40 @@ router.delete("/:id/members/:userId", async (req, res) => {
     [req.params.id, req.params.userId],
   );
   res.status(204).send();
+});
+
+// POST /workspaces/:id/projects
+router.post("/:id/projects", async (req, res) => {
+  const membership = await getMembership(req.params.id, req.user.id);
+  if (!membership)
+    return res
+      .status(403)
+      .json({ error: "You don't have access to this workspace" });
+
+  const { name, status, start_date, end_date } = req.body;
+  if (!name || !status)
+    return res.status(400).json({ error: "name and status are required" });
+
+  const project = await createProject(
+    req.params.id,
+    req.user.id,
+    name,
+    status,
+    start_date,
+    end_date,
+  );
+  res.status(201).json({ project });
+});
+
+router.get("/:id/projects", async (req, res) => {
+  const membership = await getMembership(req.params.id, req.user.id);
+  if (!membership)
+    return res
+      .status(403)
+      .json({ error: "You don't have access to this workspace" });
+
+  const projects = await getProjectsByWorkspace(req.params.id);
+  res.json({ projects });
 });
 
 export default router;
