@@ -1,6 +1,10 @@
+DROP TABLE IF EXISTS activity_log CASCADE;
+DROP TABLE IF EXISTS comments CASCADE;
 DROP TABLE IF EXISTS task_updates CASCADE;
 DROP TABLE IF EXISTS tasks CASCADE;
 DROP TABLE IF EXISTS epics CASCADE;
+DROP TABLE IF EXISTS columns CASCADE;
+DROP TABLE IF EXISTS boards CASCADE;
 DROP TABLE IF EXISTS project_members CASCADE;
 DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS workspace_members CASCADE;
@@ -65,6 +69,23 @@ CREATE TABLE project_members (
     PRIMARY KEY (project_id, user_id)
 );
 
+CREATE TABLE boards (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+
+    name TEXT NOT NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+);
+
+CREATE TABLE columns (
+  id SERIAL PRIMARY KEY,
+  board_id INTEGER NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+
+  name TEXT NOT NULL,
+  position INTEGER NOT NULL,
+);
+
 
 CREATE TABLE epics (
     id SERIAL PRIMARY KEY,
@@ -114,4 +135,22 @@ CREATE TABLE task_updates (
     update_text TEXT NOT NULL,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE comments (
+  id serial PRIMARY KEY,
+  task_id integer NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  author_id integer NOT NULL REFERENCES users(id),
+  body text NOT NULL,
+  created_at timestamp NOT NULL DEFAULT now(),
+  updated_at timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE activity_log (
+  id serial PRIMARY KEY,
+  task_id integer NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  user_id integer NOT NULL REFERENCES users(id),
+  action text NOT NULL,
+  details jsonb,
+  created_at timestamp NOT NULL DEFAULT now()
 );
