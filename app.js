@@ -10,6 +10,7 @@ import cors from "cors";
 import morgan from "morgan";
 import taskCommentsRoutes from "#api/taskComments.routes";
 import commentRoutes from "#api/comments.routes";
+import columnsRouter from "#api/columns.routes";
 
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? /localhost/ }));
 
@@ -33,3 +34,5 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).send("Sorry! Something went wrong.");
 });
+
+app.use(columnsRouter);

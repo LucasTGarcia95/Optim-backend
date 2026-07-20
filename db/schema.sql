@@ -75,7 +75,7 @@ CREATE TABLE boards (
 
     name TEXT NOT NULL,
 
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE columns (
@@ -83,7 +83,7 @@ CREATE TABLE columns (
   board_id INTEGER NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
 
   name TEXT NOT NULL,
-  position INTEGER NOT NULL,
+  position INTEGER NOT NULL
 );
 
 
@@ -103,6 +103,7 @@ CREATE TABLE tasks (
 
     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     epic_id INTEGER REFERENCES epics(id) ON DELETE SET NULL,
+    column_id integer references columns(id) on delete set null,
 
     assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
 

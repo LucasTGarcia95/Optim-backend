@@ -97,12 +97,22 @@ router.post("/google", async (req, res) => {
   let user = await getUserByEmail(email.toLowerCase());
 
   if (!user) {
-    const username = email.split("@")[0];
-    const randomPassword = crypto.randomBytes(32).toString("hex");
-    user = await createUser(username, randomPassword, {
-      name,
-      email: email.toLowerCase(),
-    });
+    try {
+      const username = email.split("@")[0];
+      const randomPassword = crypto.randomBytes(32).toString("hex");
+      user = await createUser(username, randomPassword, {
+        name,
+        email: email.toLowerCase(),
+      });
+    } catch (err) {
+      if (err.code === "23505") {
+        // Lost a race with a duplicate simultaneous request — the user now
+        // exists, just fetch it instead of crashing.
+        user = await getUserByEmail(email.toLowerCase());
+      } else {
+        throw err;
+      }
+    }
   }
 
   const token = signToken(user.id);
