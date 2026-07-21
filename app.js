@@ -14,7 +14,8 @@ import columnsRouter from "#api/columns.routes";
 import taskLabelsRoutes from "#api/taskLabels.routes";
 import projectLabelsRoutes from "#api/projectLabels.routes";
 import labelRoutes from "#api/labels.routes";
-import tasksRouter from "#api/temporarytasks.routes";
+import projectTaskRoutes from "#api/projectTasks.routes";
+import taskRoutes from "#api/tasks.routes";
 import boardsRouter from "#api/boards.routes";
 import projectsRouter from "#api/temporaryprojects.routes";
 
@@ -38,6 +39,9 @@ app.use("/comments", commentRoutes);
 app.use("/tasks", taskLabelsRoutes);
 app.use("/projects", projectLabelsRoutes);
 app.use("/labels", labelRoutes);
+
+app.use("/projects", projectTaskRoutes);
+app.use("/tasks", taskRoutes);
 
 app.use(handlePostgresErrors);
 app.use((err, req, res, next) => {
