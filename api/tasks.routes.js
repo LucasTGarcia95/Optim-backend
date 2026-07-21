@@ -154,3 +154,18 @@ router.patch("/:id/move", async (req, res) => {
 });
 
 export default router;
+
+// GET /tasks/:id/activity — chronological (oldest first), joined with user.name
+router.get("/:id/activity", async (req, res) => {
+  const task = await getTask(req.params.id);
+  if (!task) return res.status(404).json({ error: "Task not found" });
+
+  const membership = await getProjectMembership(task.project_id, req.user.id);
+  if (!membership)
+    return res
+      .status(403)
+      .json({ error: "You're not a member of this project" });
+
+  const activity = await getActivityForTask(task.id);
+  res.json({ activity });
+});
