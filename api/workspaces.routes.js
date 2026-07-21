@@ -172,11 +172,11 @@ router.get("/:id/members", async (req, res) => {
       .json({ error: "You don't have access to this workspace" });
 
   const { rows: members } = await db.query(
-    `SELECT u.id, u.name, u.email, u.avatar_url, wm.role, wm.joined_at
-     FROM workspace_members wm
-     JOIN users u ON u.id = wm.user_id
-     WHERE wm.workspace_id = $1
-     ORDER BY wm.joined_at ASC`,
+    `SELECT u.id, u.name, u.email, u.avatar_url, wm.role, wm.created_at AS joined_at
+ FROM workspace_members wm
+ JOIN users u ON u.id = wm.user_id
+ WHERE wm.workspace_id = $1
+ ORDER BY wm.created_at ASC`,
     [req.params.id],
   );
   res.json({ members });
@@ -197,7 +197,7 @@ router.delete("/:id/members/:userId", async (req, res) => {
   } = await db.query("SELECT owner_id FROM workspaces WHERE id = $1", [
     req.params.id,
   ]);
-  if (workspace.owner_id === req.params.userId) {
+  if (workspace.owner_id === Number(req.params.userId)) {
     return res.status(400).json({ error: "Can't remove the workspace owner" });
   }
 

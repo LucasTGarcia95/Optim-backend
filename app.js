@@ -16,6 +16,7 @@ import projectLabelsRoutes from "#api/projectLabels.routes";
 import labelRoutes from "#api/labels.routes";
 import tasksRouter from "#api/temporarytasks.routes";
 import boardsRouter from "#api/boards.routes";
+import projectsRouter from "#api/temporaryprojects.routes";
 
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? /localhost/ }));
 
@@ -48,3 +49,4 @@ app.use(columnsRouter);
 
 app.use("/tasks", tasksRouter);
 app.use(boardsRouter);
+app.use("/projects", projectsRouter);
