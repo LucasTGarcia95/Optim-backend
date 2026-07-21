@@ -101,7 +101,7 @@ router.get("/", async (req, res) => {
 
   const { rows: projects } = await db.query(
     `SELECT p.*,
-            COUNT(t.id) FILTER (WHERE t.status != 'completed') AS open_task_count
+            COUNT(t.id) AS open_task_count
      FROM projects p
      LEFT JOIN tasks t ON t.project_id = p.id
      WHERE p.workspace_id = $1
@@ -203,12 +203,13 @@ router.get("/:id/board", async (req, res) => {
   );
 
   const { rows: tasks } = await db.query(
-    `SELECT t.id, t.column_id, t.title, t.description, t.status, t.priority,
-            t.due_date, t.assigned_to, u.name AS assignee_name, t.created_at, t.updated_at
-     FROM tasks t
-     LEFT JOIN users u ON u.id = t.assigned_to
-     WHERE t.project_id = $1
-     ORDER BY t.created_at ASC`,
+    `SELECT t.id, t.column_id, t.task_number, t.title, t.description, t.type,
+          t.priority, t.due_date, t.position, t.assignee_id,
+          u.name AS assignee_name, t.created_at, t.updated_at
+   FROM tasks t
+   LEFT JOIN users u ON u.id = t.assignee_id
+   WHERE t.project_id = $1
+   ORDER BY t.column_id, t.position ASC`,
     [access.project.id],
   );
 
@@ -241,11 +242,9 @@ router.post("/:id/members", async (req, res) => {
     [email.toLowerCase(), access.project.workspace_id],
   );
   if (!user) {
-    return res
-      .status(404)
-      .json({
-        error: "That person isn't a member of this project's workspace yet",
-      });
+    return res.status(404).json({
+      error: "That person isn't a member of this project's workspace yet",
+    });
   }
 
   try {

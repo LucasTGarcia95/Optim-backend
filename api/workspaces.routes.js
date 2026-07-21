@@ -141,7 +141,7 @@ router.post("/:id/invite", async (req, res) => {
 
   try {
     await db.query(
-      "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, 'member')",
+      "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, 'contributor')",
       [req.params.id, user.id],
     );
   } catch (err) {
@@ -158,7 +158,7 @@ router.post("/:id/invite", async (req, res) => {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: "member",
+      role: "contributor",
     },
   });
 });

@@ -43,14 +43,13 @@ app.use("/labels", labelRoutes);
 app.use("/projects", projectTaskRoutes);
 app.use("/tasks", taskRoutes);
 
+app.use(columnsRouter);
+
+app.use(boardsRouter);
+app.use("/projects", projectsRouter);
+
 app.use(handlePostgresErrors);
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).send("Sorry! Something went wrong.");
 });
-
-app.use("/columns", columnsRouter);
-
-app.use("/tasks", tasksRouter);
-app.use("boards", boardsRouter);
-app.use("/projects", projectsRouter);
