@@ -155,3 +155,53 @@ export async function logActivity(taskId, userId, action, details) {
     [taskId, userId, action, details ? JSON.stringify(details) : null],
   );
 }
+
+// GET /tasks/:id/activity — chronological, OLDEST FIRST (documented choice,
+// matches the same convention used for comments elsewhere in this codebase).
+export async function getActivityForTask(taskId) {
+  const sql = `
+    SELECT a.id, a.action, a.details, a.created_at, u.name AS user_name
+    FROM activity_log a
+    JOIN users u ON u.id = a.user_id
+    WHERE a.task_id = $1
+    ORDER BY a.created_at ASC
+  `;
+  const { rows } = await db.query(sql, [taskId]);
+  return rows;
+}
+
+// GET /projects/:id/tasks?assignee=&label=&priority=
+// Filters combine with AND. Each is optional — only adds a WHERE condition
+// for params actually passed, rather than requiring all three.
+export async function getTasksForProject(
+  projectId,
+  { assignee, label, priority } = {},
+) {
+  const conditions = ["t.project_id = $1"];
+  const params = [projectId];
+
+  if (assignee) {
+    params.push(assignee);
+    conditions.push(`t.assignee_id = $${params.length}`);
+  }
+  if (priority) {
+    params.push(priority);
+    conditions.push(`t.priority = $${params.length}`);
+  }
+
+  let labelJoin = "";
+  if (label) {
+    params.push(label);
+    labelJoin = `JOIN task_labels tl ON tl.task_id = t.id AND tl.label_id = $${params.length}`;
+  }
+
+  const sql = `
+    SELECT ${taskRow("t.")}
+    FROM tasks t
+    ${labelJoin}
+    WHERE ${conditions.join(" AND ")}
+    ORDER BY t.column_id, t.position ASC
+  `;
+  const { rows } = await db.query(sql, params);
+  return rows;
+}

@@ -5,6 +5,7 @@ import {
   getColumnForProject,
   createTask,
   logActivity,
+  getTasksForProject,
 } from "#db/queries/tasks";
 import db from "#db/client";
 
@@ -56,8 +57,7 @@ router.post("/:id/tasks", async (req, res) => {
   res.status(201).json({ task });
 });
 
-// GET /projects/:id/tasks — list tasks (no filters — see the separate
-// Search & Filter ticket for query-param filtering).
+// GET /projects/:id/tasks?assignee=&label=&priority= — filters combine with AND.
 router.get("/:id/tasks", async (req, res) => {
   const membership = await getProjectMembership(req.params.id, req.user.id);
   if (!membership)
@@ -65,11 +65,11 @@ router.get("/:id/tasks", async (req, res) => {
       .status(403)
       .json({ error: "You're not a member of this project" });
 
-  const { rows: tasks } = await db.query(
-    "SELECT * FROM tasks WHERE project_id = $1 ORDER BY column_id, position ASC",
-    [req.params.id],
-  );
+  const { assignee, label, priority } = req.query;
+  const tasks = await getTasksForProject(req.params.id, {
+    assignee,
+    label,
+    priority,
+  });
   res.json({ tasks });
 });
-
-export default router;
