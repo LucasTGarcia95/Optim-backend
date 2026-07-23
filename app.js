@@ -17,6 +17,7 @@ import labelRoutes from "#api/labels.routes";
 import projectTaskRoutes from "#api/projectTasks.routes";
 import taskRoutes from "#api/tasks.routes";
 import boardsRouter from "#api/boards.routes";
+import projectAnalyticsRoutes from "#api/projectAnalytics.routes";
 
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? /localhost/ }));
 
@@ -41,6 +42,8 @@ app.use("/labels", labelRoutes);
 
 app.use("/projects", projectTaskRoutes);
 app.use("/tasks", taskRoutes);
+
+app.use("/projects", projectAnalyticsRoutes);
 
 app.use(handlePostgresErrors);
 app.use((err, req, res, next) => {
