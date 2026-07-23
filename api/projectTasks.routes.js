@@ -73,3 +73,5 @@ router.get("/:id/tasks", async (req, res) => {
   });
   res.json({ tasks });
 });
+
+export default router;
